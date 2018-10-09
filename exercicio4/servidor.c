@@ -10,6 +10,8 @@
 #include <unistd.h>
 
 #include <arpa/inet.h> //avoid implicit declaration of inet_ntop function
+#include <sys/mman.h>
+#include <sys/wait.h>
 
 #define LISTENQ 10
 #define MAXDATASIZE 100
@@ -20,7 +22,8 @@ void Listen(int listen_socket, int backlog);
 int Accept(int listen_socket, struct sockaddr_in client_address, int c);
 void ipPortaServidor(struct sockaddr_in server_address);
 void ipPortaCliente(int c, struct sockaddr_in client_address);
-int comandoCliente(char *cadeia, int connfd, int c);
+int comandoCliente(char *command, int connfd, int c);
+int verificarNumeroCliente(int numero);
 
 int main (int argc, char **argv) {
   int	listenfd, connfd;
@@ -48,18 +51,25 @@ int main (int argc, char **argv) {
   printf("escutando clientes ...\n");
 
   int c = 1;
+  pid_t waitcommandpid; //processo 1: processo que se executara em paralelo com o processo 2
+  static int *wait;
+  wait = mmap(NULL, sizeof *wait, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+  *wait = 0;
   pid_t childpid;
   char cadeia[MAXDATASIZE];
+
   char *cliente = NULL;
   char *comando = NULL;
+  char *comando_aux; 
+  comando_aux = mmap(NULL, sizeof *comando, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
   char *pos = NULL;
-  for ( ; ; ) {
-    connfd = Accept(listenfd, cliaddr, c);
-    //ipPortaCliente(c, cliaddr);
 
-    if ((childpid = fork()) == 0){
-      close(listenfd);
-      while(1){
+  int *childProcesses2;
+  childProcesses2 = mmap(NULL, LISTENQ*sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+  if ((waitcommandpid = fork()) == 0){ //processo 1
+    while (1){
+      if (*wait == 1){
         cliente = NULL;
         comando = NULL;
         pos = NULL;
@@ -68,28 +78,56 @@ int main (int argc, char **argv) {
         fgets(cadeia, MAXDATASIZE, stdin);
         //se verifica que o caractere '!' exista no comando
         if (((pos = strchr(cadeia, '!')) != NULL)){
-          //se verifica que os caracteres antes do '!', sejan numeros e corresponda ao numero de cliente conectado
+          //se verifica que os caracteres antes do '!', sejan numeros e corresponda ao numero de um cliente aceitado
           cliente = strtok(cadeia, "!");
           //printf("%s\n", cliente);
-          if (atoi(cliente) != 0 && atoi(cliente) == c) {
+          if (atoi(cliente) != 0 && verificarNumeroCliente(atoi(cliente) == 1)) {
+            int numCliente = atoi(cliente);
+
             comando = strtok(NULL, "");
             //se apaga o caractere '\n'
             pos = NULL;
             if ((pos = strchr(comando, '\n')) != NULL) *pos = '\0';
-            //printf("comando: %s\n", comando);
-            if (comandoCliente(comando, connfd, c) == -1){ //se termina a conecao com ese cliente
-              close(connfd);
-              exit(0);
-            }
+            printf("comando: %s\n", comando);
+            strcpy(comando_aux, comando);
+
+            //se face a chamada ao child process respectivo do processo 2
+            childProcesses2[numCliente-1] = 1;
+            sleep(3);
+
           }
-          else printf("Inserir um comando valido!\n"); 
+          else printf("verificar o numero do cliente inserido\n"); 
         }
-        else printf("Seguir o padrao!\n");
+        else printf("Seguir o padrao (nao esquecer !)\n");
+      }
+    }
+  }
+
+  for ( ; ; ) { //processo 2 (processo principal)
+    connfd = Accept(listenfd, cliaddr, c);
+    //ipPortaCliente(c, cliaddr);
+
+    *wait = 1;
+
+    if ((childpid = fork()) == 0){
+      int numeroAsignado = c;
+      close(listenfd);
+      while(1){
+        if (childProcesses2[c-1] == 1){
+          //printf("valor do comando no processo 2: %s\n", comando_aux);
+          if (comandoCliente(comando_aux, connfd, c) == -1){ //-1: se termina a conecao com ese cliente
+            childProcesses2[numeroAsignado-1] = 0;
+            close(connfd);
+            exit(0);
+          }
+          childProcesses2[numeroAsignado-1] = 0;
+        }
       }
     }
 
     close(connfd);
     c++;
+
   }
   return(0);
 }
@@ -128,7 +166,7 @@ int Accept(int listen_socket, struct sockaddr_in client_address, int c){
     exit(1);
   }
   else{
-  printf("cliente#%d aceptado\n", c);
+  printf("\ncliente#%d aceptado\n", c);
   char clientIP[16];
   unsigned int clientPort;
 
@@ -177,7 +215,7 @@ int comandoCliente(char *command, int connfd, int c){ //se deve passar como para
     perror("send");
     exit(1);
   }
-  printf("comando enviado ao cliente#%d\n", c);
+  printf("comando enviado ao cliente#%d\n", c); 
 
   if (strcmp(command, "quit") == 0) return -1;
 
@@ -189,4 +227,9 @@ int comandoCliente(char *command, int connfd, int c){ //se deve passar como para
   }
   printf("mensagem recebida do cliente#%d: %s\n", c, mensagem);
   return 0;
+}
+
+int verificarNumeroCliente(int numero){
+  //se verifica que o numero inserido seja de alguns dos cliente aceitados
+  return 1;
 }
