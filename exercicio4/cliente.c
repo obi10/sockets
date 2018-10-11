@@ -23,8 +23,7 @@ int main(int argc, char **argv) {
   inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
   Connect(sockfd, servaddr);
   printf("conectado ao servidor...\n");
-  ipPortaServidor(servaddr);
-
+  ipPortaServidor(servaddr, NULL);
 
   pid_t childpid;
   while(1) {
@@ -36,19 +35,18 @@ int main(int argc, char **argv) {
     //se o comando e igual ao quit, se fecha a conecao, e se termina o programa
     if (strcmp(buffer, "quit") == 0) {
       close(sockfd);
-      if (childpid > 0) kill(childpid, SIGKILL); //se apaga o child process en execucao
+      if (childpid > 0) kill(childpid, SIGKILL); //se apaga o child process en execucao (netstat -c -t -n)
       printf("o servidor termino o processo de comunicacao\n");
+      //deveria apagarse os child processes antigos (previamente creados) antes de terminar o programa
       exit(0);
     }
     
     //pipe
     int link[2];
     if (pipe(link) == -1) {
-      printf("%s\n", "pipe error");
+      perror("pipe");
       exit(1);
     }
-
-
 
     if ((childpid = fork()) == 0) {
       close(sockfd);
@@ -56,27 +54,19 @@ int main(int argc, char **argv) {
       dup2(link[1], STDOUT_FILENO); //se duplica o file descriptor link[1]
       close(link[0]);
       close(link[1]);
-      execl("/bin/sh", "sh", "-c", buffer, (char *) NULL);//o mesmo execl termina o child processs (nao se precisa exit(0))
-      //se pode usar dup or dup2 (https://stackoverflow.com/questions/7292642/grabbing-output-from-exec)
+      execl("/bin/sh", "sh", "-c", buffer, (char *) NULL); //o mesmo execl termina o child processs
+                                                           //(nao se precisa exit(0))
     }
 
     close(link[1]);
 
     memset(buffer, 0, sizeof buffer); //se limpa o buffer
-    //se le a saida do execls
-    Read(link[0], buffer, MAXDATASIZE);
+    Read(link[0], buffer, MAXDATASIZE); //se le a saida do execl
 
-
-    if (buffer != NULL && buffer[0] == '\0') { //se ve se o comando foi invalido
+    if (buffer != NULL && buffer[0] == '\0') { //se verifica se o comando foi invalido
       memset(buffer, 0, sizeof buffer);
       strcpy(buffer, "comando invalido\n");
     }
-    /*
-    else{
-      char *pos = NULL;
-      if ((pos = strchr(buffer, '\n')) != NULL) *pos = '\0';
-    }
-    */
 
     //se enviar a informacao do cliente mais a saida gerada pelo comando
     //se o comando foi invalido, se envia a mensagem "comando invalido"
@@ -93,19 +83,16 @@ int main(int argc, char **argv) {
     char integer_string[5];
     sprintf(integer_string, "%d", myPort);
 
-
     int newSize = strlen(myIP) + strlen(integer_string) + strlen(buffer) + 10;
     char *newBuffer = (char *)malloc(newSize);
     strcpy(newBuffer, "IP:");
     strcat(newBuffer, myIP);
-    strcat(newBuffer, "PORT:");
+    strcat(newBuffer, "PORTA:");
     strcat(newBuffer, integer_string);
     strcat(newBuffer, "!");
     strcat(newBuffer, buffer);
 
-
     Send(sockfd, newBuffer, strlen(newBuffer), 0);
     printf("se envio a mensagem:\n%s", newBuffer);
-  }
-  
+  }  
 }

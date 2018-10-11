@@ -25,12 +25,12 @@
 int Socket(int family, int type, int flags);
 void Bind(int listen_socket, struct sockaddr_in server_address);
 void Listen(int listen_socket, int backlog);
-int Accept(int listen_socket, struct sockaddr_in client_address);
-void ipPortaServidor(struct sockaddr_in server_address);
-void ipPortaCliente(struct sockaddr_in client_address);
+int Accept(int listen_socket, struct sockaddr_in client_address, FILE *fp, time_t ticks);
+void ipPortaServidor(struct sockaddr_in server_address, FILE *fp);
+void ipPortaCliente(struct sockaddr_in client_address, FILE *fp, time_t ticks);
 void Send(int socket, char *buffer, size_t length, int flags);
 void Read(int socket, char *buffer, size_t length);
-int comandoCliente(char *command, int connfd);
+int comandoCliente(char *command, int connfd, FILE *fp, time_t ticks);
 void Connect(int client_socket, struct sockaddr_in server_address);
 
 #endif // WRAP_H_
