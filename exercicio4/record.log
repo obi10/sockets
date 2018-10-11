@@ -1,0 +1,48 @@
+
+---Dados do servidor---
+IP:127.0.0.1
+PORTA:8000
+
+---sessao 1---
+IP:127.0.0.1PORTA:55998CONECAO:Thu Oct 11 14:28:41 2018
+IP:127.0.0.1PORTA:55998!/home/specg18-2-fra/ra227895/sockets/exercicio4
+T:Thu Oct 11 14:28:43 2018
+IP:127.0.0.1PORTA:56000CONECAO:Thu Oct 11 14:29:02 2018
+IP:127.0.0.1PORTA:55998!/home/specg18-2-fra/ra227895/sockets/exercicio4
+T:Thu Oct 11 14:29:04 2018
+IP:127.0.0.1PORTA:56000!/home/specg18-2-fra/ra227895/sockets/exercicio4
+T:Thu Oct 11 14:29:04 2018
+IP:127.0.0.1PORTA:56000!comando invalido
+T:Thu Oct 11 14:29:16 2018
+IP:127.0.0.1PORTA:55998!comando invalido
+T:Thu Oct 11 14:29:16 2018
+clientes-desligados:Thu Oct 11 14:29:22 2018
+
+---sessao 2---
+IP:127.0.0.1PORTA:56002CONECAO:Thu Oct 11 14:29:28 2018
+IP:127.0.0.1PORTA:56002!/home/specg18-2-fra/ra227895/sockets/exercicio4
+T:Thu Oct 11 14:29:31 2018
+IP:127.0.0.1PORTA:56004CONECAO:Thu Oct 11 14:29:34 2018
+IP:127.0.0.1PORTA:56002!comando invalido
+T:Thu Oct 11 14:29:38 2018
+IP:127.0.0.1PORTA:56004!comando invalido
+T:Thu Oct 11 14:29:38 2018
+IP:127.0.0.1PORTA:56002!cliente
+cliente.c
+Makefile
+record.log
+servidor
+servidor.c
+wrap.c
+wrap.h
+T:Thu Oct 11 14:29:42 2018
+IP:127.0.0.1PORTA:56004!cliente
+cliente.c
+Makefile
+record.log
+servidor
+servidor.c
+wrap.c
+wrap.h
+T:Thu Oct 11 14:29:42 2018
+clientes-desligados:Thu Oct 11 14:29:46 2018
