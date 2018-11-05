@@ -36,9 +36,12 @@ int Listen(int sockfd, int backlog) {
 int Accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
    int connfd;
 
-   if ((connfd = accept(sockfd, addr, addrlen)) == -1) {
-      perror("accept");
-      exit(1);
+   if ((connfd = accept(sockfd, addr, addrlen)) < 0) {
+      if (errno == EINTR) return connfd;
+      else {
+         perror("accept");
+         exit(1);
+      }
    }
 
    return connfd;
@@ -129,4 +132,18 @@ void sig_chld(int signo) {
    while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0)
       printf("child %d terminated\n", pid);
    return;
+}
+
+void Send(int socket, char *buffer, size_t length, int flags){
+   if (send(socket, buffer, length, flags) == -1){
+      perror("send");
+      exit(1);
+   }
+}
+
+void Read(int socket, char *buffer, size_t length){
+   if (read(socket, buffer, length) == -1){
+      perror("read");
+      exit(1);
+   }
 }
