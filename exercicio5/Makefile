@@ -1,22 +1,12 @@
-CFLAGS = -Wall -g
+CC=gcc
+FLAGS = -Wall
 
-LIB_CODE = socket_helper.c 
-LIB_HEADER = socket_helper.h
+all : cliente servidor
 
-all: cliente servidor #cliente servidor
+cliente : cliente.c
+	$(CC) $(FLAGS) -o cliente cliente.c socket_helper.c
+servidor : servidor.c
+	$(CC) $(FLAGS) -o servidor servidor.c socket_helper.c
 
-#cliente: cliente.c $(LIB_CODE) $(LIB_HEADER)
-#	gcc $(CFLAGS) cliente.c $(LIB_CODE) -o cliente
-#
-#servidor: servidor.c $(LIB_CODE) $(LIB_HEADER)
-#	gcc $(CFLAGS) servidor.c $(LIB_CODE) -o servidor
-
-cliente: cliente.c $(LIB_CODE) $(LIB_HEADER)
-	gcc $(CFLAGS) cliente.c $(LIB_CODE) -o cliente
-
-servidor: servidor.c $(LIB_CODE) $(LIB_HEADER)
-	gcc $(CFLAGS) servidor.c $(LIB_CODE) -o servidor
-
-.PHONY: clean
-clean:
-	rm -f cliente servidor cliente servidor
+clean :
+	@rm cliente servidor 

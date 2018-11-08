@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
@@ -56,8 +55,8 @@ int main (int argc, char **argv) {
       struct sockaddr_in clientaddr;
       socklen_t clientaddr_len = sizeof(clientaddr);
 
-      sleep(2); //retardar a remoção dos sockets da fila de conexões completas.
       connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &clientaddr_len);
+      printf("cliente aceitado\n");
 
       if ((pid = fork()) == 0) {
          Close(listenfd);
@@ -76,36 +75,17 @@ int main (int argc, char **argv) {
 }
 
 void doit(int connfd, struct sockaddr_in clientaddr) {
-   //char recvline[MAXDATASIZE + 1];
-   //char  message[MAXDATASIZE + 1];      
-   //int n;                  
-   socklen_t remoteaddr_len = sizeof(clientaddr);
+   char recvline[MAXDATASIZE];
+   strcpy(recvline, "sou o servidor");                
+   //socklen_t remoteaddr_len = sizeof(clientaddr);
    
-   if (getpeername(connfd, (struct sockaddr *) &clientaddr, &remoteaddr_len) == -1) {
-      perror("getpeername() failed");
-      return;
+   //Send(connfd, recvline, strlen(recvline), 0);
+
+   while(1) {
+      Send(connfd, recvline, strlen(recvline), 0);
+      memset(recvline, 0, sizeof recvline);
+      Read(connfd, recvline, MAXDATASIZE);
+      Send(connfd, recvline, strlen(recvline), 0);
    }
-   printf("<%s-%d>\n", inet_ntoa(clientaddr.sin_addr),(int) ntohs(clientaddr.sin_port));
-   sleep(5);
-   /*
-   while ((n = read(connfd, recvline, MAXDATASIZE)) > 0) {
-      recvline[n] = 0; 
 
-      if (getpeername(connfd, (struct sockaddr *) &clientaddr, &remoteaddr_len) == -1) {
-         perror("getpeername() failed");
-         return;
-      }
-
-      printf("<%s-%d>: %s\n", inet_ntoa(clientaddr.sin_addr),(int) ntohs(clientaddr.sin_port), recvline);
-
-      printf("Digite uma mensagem:\n");
-      fgets(message, MAXDATASIZE, stdin);
-      if(strcmp(message, EXIT_COMMAND) == 0) {
-         break;
-      }
-
-      write(connfd, message, strlen(message));
-
-   }
-   */
 }

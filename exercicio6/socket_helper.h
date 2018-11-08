@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 int Socket(int domain, int type, int protocol);
 
@@ -31,5 +32,9 @@ typedef void Sigfunc(int);
 Sigfunc * Signal (int signo, Sigfunc *func);
 
 void sig_chld(int signo);
+
+void Send(int socket, char *buffer, size_t length, int flags);
+
+void Read(int socket, char *buffer, size_t length);
 
 #endif
