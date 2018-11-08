@@ -76,16 +76,12 @@ int main (int argc, char **argv) {
 
 void doit(int connfd, struct sockaddr_in clientaddr) {
    char recvline[MAXDATASIZE];
-   strcpy(recvline, "sou o servidor");                
-   //socklen_t remoteaddr_len = sizeof(clientaddr);
-   
-   //Send(connfd, recvline, strlen(recvline), 0);
 
    while(1) {
-      Send(connfd, recvline, strlen(recvline), 0);
       memset(recvline, 0, sizeof recvline);
       Read(connfd, recvline, MAXDATASIZE);
       Send(connfd, recvline, strlen(recvline), 0);
    }
+   printf("%s\n", "aux");
 
 }
