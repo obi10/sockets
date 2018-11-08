@@ -90,20 +90,36 @@ int main(int argc, char **argv) {
          if (FD_ISSET(fileno(fread), &rset)) { /* input is readable */
             while(fgets(buffer_in, sizeof(buffer_in), fread)) {
                send(sockfd, buffer_in, strlen(buffer_in), 0);
-               printf("OK\n");
+               //printf("OK\n");
             }
             fclose(fread);
+
+            //indicates to the server the file was completely read and sended
+            memset(buffer_in, 0, sizeof(buffer_in));
+            strcpy(buffer_in, "end");
+            send(sockfd, buffer_in, strlen(buffer_in), 0);
+
+            shutdown(sockfd, SHUT_WR); //close for writing
          }
 
          if (FD_ISSET(sockfd, &rset)) {
-            memset(buffer_out, 0, sizeof buffer_out);
+            memset(buffer_out, 0, sizeof(buffer_out));
             Read(sockfd, buffer_out, MAXLINE);
+            
+            if (strcmp(buffer_out, "end") == 0) {
+               close(sockfd);
+               //shutdown(sockfd, SHUT_RD); //close for reading
+               running = 0;
+            }
+            
             fprintf(fwrite, buffer_out);
             fflush(fwrite);
+            printf("OK\n");
          }
       }
    }
 
+   printf("progam ended\n");
    exit(0);
 }
 

@@ -81,7 +81,8 @@ void doit(int connfd, struct sockaddr_in clientaddr) {
       memset(recvline, 0, sizeof recvline);
       Read(connfd, recvline, MAXDATASIZE);
       Send(connfd, recvline, strlen(recvline), 0);
+      if (strcmp(recvline, "end") == 0) break;
    }
-   printf("%s\n", "aux");
+   printf("%s\n", "task finished");
 
 }
