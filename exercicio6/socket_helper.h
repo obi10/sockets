@@ -33,8 +33,4 @@ Sigfunc * Signal (int signo, Sigfunc *func);
 
 void sig_chld(int signo);
 
-void Send(int socket, char *buffer, size_t length, int flags);
-
-void Read(int socket, char *buffer, size_t length);
-
 #endif

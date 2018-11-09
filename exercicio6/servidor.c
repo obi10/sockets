@@ -56,7 +56,7 @@ int main (int argc, char **argv) {
       socklen_t clientaddr_len = sizeof(clientaddr);
 
       connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &clientaddr_len);
-      printf("cliente aceitado\n");
+      printf("#cliente aceitado\n");
 
       if ((pid = fork()) == 0) {
          Close(listenfd);
@@ -64,6 +64,7 @@ int main (int argc, char **argv) {
          doit(connfd, clientaddr);
 
          Close(connfd);
+         printf("%s\n", "\n#task finished");
 
          exit(0);
       }
@@ -76,13 +77,17 @@ int main (int argc, char **argv) {
 
 void doit(int connfd, struct sockaddr_in clientaddr) {
    char recvline[MAXDATASIZE];
+   memset(recvline, 0, sizeof recvline);
 
-   while(1) {
+   ssize_t bytes_read;
+   while((bytes_read = read(connfd, recvline, MAXDATASIZE)) > 0) {
+      printf("%zu\n", bytes_read);
+      if (send(connfd, recvline, strlen(recvline), 0) == -1) {
+         perror("send");
+         exit(1);
+      } 
+      printf("%sok", recvline);
       memset(recvline, 0, sizeof recvline);
-      Read(connfd, recvline, MAXDATASIZE);
-      Send(connfd, recvline, strlen(recvline), 0);
-      if (strcmp(recvline, "end") == 0) break;
    }
-   printf("%s\n", "task finished");
 
 }

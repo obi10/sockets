@@ -35,8 +35,9 @@ int main(int argc, char **argv) {
    struct timeval selTimeout;
 
    //buffers de recepcao e envio
+   char buffer_in[MAXLINE]; memset(buffer_in, 0, sizeof buffer_in);
+   //char *buffer_out = NULL; size_t buffer_out_size = MAXLINE;
    char buffer_out[MAXLINE];
-   char buffer_in[MAXLINE];
 
    if (argc < 6) {
       strcpy(error,"uso: ");
@@ -59,18 +60,31 @@ int main(int argc, char **argv) {
    servaddr = ClientSockaddrIn(AF_INET, ip, port);
 
    Connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-   printf("Conectado ao servidor\n");
+   printf("#Conectado ao servidor\n");
 
    char const* const readFile = argv[4];
    FILE* fread = fopen(readFile, "r");
+   if (fread == NULL){
+      perror("file-read open");
+      exit(1);
+   }
    char const* const writeFile = argv[5];
-   FILE* fwrite = fopen(writeFile, "a+"); 
+   FILE* fwrite = fopen(writeFile, "a+");
+   if (fwrite == NULL){
+      perror("file-write open");
+      exit(1);
+   }
+
+   int count = 0;
+   int stdineof = 0;
 
    while (running) {
       FD_ZERO(&rset);
       FD_SET(STDIN_FILENO, &rset);
-      FD_SET(fileno(fread), &rset);
-      if (fileno(fread) > maxDescriptor) maxDescriptor = fileno(fread);
+      if (stdineof == 0) {
+         FD_SET(fileno(fread), &rset);
+         if (fileno(fread) > maxDescriptor) maxDescriptor = fileno(fread);
+      }
       FD_SET(sockfd, &rset);
       if (sockfd > maxDescriptor) maxDescriptor = sockfd;
 
@@ -82,44 +96,52 @@ int main(int argc, char **argv) {
          printf("No echo requests for %ld secs...Server still alive\n", timeout);
       else {
          if (FD_ISSET(0, &rset)) { /* Check keyboard */
-            printf("Shutting down client\n");
+            printf("#Shutting down client\n");
             getchar();
             running = 0;
          }
 
          if (FD_ISSET(fileno(fread), &rset)) { /* input is readable */
-            while(fgets(buffer_in, sizeof(buffer_in), fread)) {
-               send(sockfd, buffer_in, strlen(buffer_in), 0);
-               //printf("OK\n");
+            while (fgets(buffer_out, sizeof(buffer_out), fread)) {
+               if (send(sockfd, buffer_out, strlen(buffer_out), 0) == -1) {
+                  perror("send");
+                  exit(1);
+               } 
+               printf("%sok", buffer_out);
+               count++;
+               printf("%d\n", count);
             }
+
             fclose(fread);
-
-            //indicates to the server the file was completely read and sended
-            memset(buffer_in, 0, sizeof(buffer_in));
-            strcpy(buffer_in, "end");
-            send(sockfd, buffer_in, strlen(buffer_in), 0);
-
+            stdineof = 1;
             shutdown(sockfd, SHUT_WR); //close for writing
+            FD_CLR(fileno(fread), &rset);
+            continue;
          }
 
          if (FD_ISSET(sockfd, &rset)) {
-            memset(buffer_out, 0, sizeof(buffer_out));
-            Read(sockfd, buffer_out, MAXLINE);
-            
-            if (strcmp(buffer_out, "end") == 0) {
-               close(sockfd);
-               //shutdown(sockfd, SHUT_RD); //close for reading
-               running = 0;
+            if ((read(sockfd, buffer_in, MAXLINE)) > 0) {
+               printf("OK\n");
+               printf("%d\n", count);
+               printf(buffer_in);
+               fprintf(fwrite, buffer_in);
+               fflush(fwrite);
+
+               memset(buffer_in, 0, sizeof buffer_in); //clear the buffer
             }
-            
-            fprintf(fwrite, buffer_out);
-            fflush(fwrite);
-            printf("OK\n");
+            else {
+               if (stdineof == 1) {
+                  running = 0;
+                  shutdown(sockfd, SHUT_RD); //close for writing
+                  FD_CLR(sockfd, &rset);
+                  continue;
+               }
+            }
          }
       }
    }
 
-   printf("progam ended\n");
+   printf("\n#progam ended\n");
    exit(0);
 }
 
