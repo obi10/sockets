@@ -1,5 +1,6 @@
 #include "socket_helper.h"
 
+
 int Socket(int domain, int type, int protocol) {
    int sockfd;
 
@@ -132,3 +133,86 @@ void sig_chld(int signo) {
       printf("child %d terminated\n", pid);
    return;
 }
+
+
+//reads up to MAXLINE characters at a time and then returns them, one at a time
+ssize_t
+my_read(int fd, char *ptr, char *read_buf)
+{
+   static int  read_cnt;
+   static char *read_ptr;
+   
+   if (read_cnt <= 0) {
+again:
+      if ( (read_cnt = read(fd, read_buf, sizeof(read_buf))) < 0) {
+         if (errno == EINTR)
+            goto again;
+         return(-1);
+      } else if (read_cnt == 0)
+         return(0);
+      read_ptr = read_buf;
+   }
+
+   read_cnt--;
+   *ptr = *read_ptr++;
+   return(1);
+}
+
+ssize_t
+readline(int fd, void *vptr, size_t maxlen, char *read_buf)
+{
+   ssize_t  n, rc;
+   char  c, *ptr;
+
+   ptr = vptr;
+   for (n = 1; n < maxlen; n++) {
+      if ( (rc = my_read(fd, &c, read_buf)) == 1) {
+         *ptr++ = c;
+         if (c == '\n')
+            break;   /* newline is stored, like fgets() */
+      } else if (rc == 0) {
+         *ptr = 0;
+         return(n - 1); /* EOF, n - 1 bytes were read */
+      } else
+         return(-1);    /* error, errno set by read() */
+   }
+
+   *ptr = 0;   /* null terminate like fgets() */
+   return(n);
+}
+
+ssize_t
+Readline(int fd, void *ptr, size_t maxlen)
+{
+   ssize_t n;
+   static char read_buf[MAXLINE];
+
+   if ( (n = readline(fd, ptr, maxlen, read_buf)) < 0)
+      perror("readline error");
+   return(n);
+}
+
+
+ssize_t                 /* Write "n" bytes to a descriptor. */
+writen(int fd, const void *vptr, size_t n)
+{
+   size_t      nleft;
+   ssize_t     nwritten;
+   const char  *ptr;
+
+   ptr = vptr;
+   nleft = n;
+   while (nleft > 0) {
+      if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
+         if (nwritten < 0 && errno == EINTR)
+            nwritten = 0;     /* and call write() again */
+         else
+            return(-1);       /* error */
+      }
+
+      nleft -= nwritten;
+      ptr   += nwritten;
+   }
+   return(n);
+}
+/* end writen */

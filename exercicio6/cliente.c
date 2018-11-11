@@ -12,11 +12,7 @@
 
 #include <sys/time.h> //for struct timeval {}
 
-#include "basic.h"
 #include "socket_helper.h"
-
-#define MAXLINE 4096
-#define EXIT_COMMAND "exit\n"    
 
 
 void doit(int sockfd, FILE *file);
@@ -35,9 +31,9 @@ int main(int argc, char **argv) {
    struct timeval selTimeout;
 
    //buffers de recepcao e envio
-   char buffer_in[MAXLINE]; memset(buffer_in, 0, sizeof buffer_in);
+   char recvline[MAXLINE]; memset(recvline, 0, sizeof recvline);
    //char *buffer_out = NULL; size_t buffer_out_size = MAXLINE;
-   char buffer_out[MAXLINE];
+   char sendline[MAXLINE]; memset(sendline, 0, sizeof sendline);
 
    if (argc < 6) {
       strcpy(error,"uso: ");
@@ -60,7 +56,7 @@ int main(int argc, char **argv) {
    servaddr = ClientSockaddrIn(AF_INET, ip, port);
 
    Connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-   printf("#Conectado ao servidor\n");
+   printf("#connected to the server\n");
 
    char const* const readFile = argv[4];
    FILE* fread = fopen(readFile, "r");
@@ -75,7 +71,7 @@ int main(int argc, char **argv) {
       exit(1);
    }
 
-   int count = 0;
+   //int count_send = 0, count_recv = 0;
    int stdineof = 0;
 
    while (running) {
@@ -102,37 +98,44 @@ int main(int argc, char **argv) {
          }
 
          if (FD_ISSET(fileno(fread), &rset)) { /* input is readable */
-            while (fgets(buffer_out, sizeof(buffer_out), fread)) {
-               if (send(sockfd, buffer_out, strlen(buffer_out), 0) == -1) {
-                  perror("send");
-                  exit(1);
-               } 
-               printf("%sok", buffer_out);
-               count++;
-               printf("%d\n", count);
+            if (Readline(fileno(fread), recvline, sizeof recvline) == 0) {
+               fclose(fread);
+               stdineof = 1;
+               shutdown(sockfd, SHUT_WR); //close for writing
+               FD_CLR(fileno(fread), &rset);
+               continue;               
             }
 
-            fclose(fread);
-            stdineof = 1;
-            shutdown(sockfd, SHUT_WR); //close for writing
-            FD_CLR(fileno(fread), &rset);
-            continue;
+            if (writen(sockfd, recvline, strlen(recvline)) != strlen(recvline)) {
+               perror("write");
+               exit(1);
+            } 
+            printf("!send\n");
+            /*
+            count_send++;
+            printf("%d\n", count_send);
+            */
+
+            //memset(recvline, 0, sizeof recvline); //is not necessary because the null pointer
+                                                    //inside Readline function
          }
 
          if (FD_ISSET(sockfd, &rset)) {
-            if ((read(sockfd, buffer_in, MAXLINE)) > 0) {
-               printf("OK\n");
-               printf("%d\n", count);
-               printf(buffer_in);
-               fprintf(fwrite, buffer_in);
+            if ((read(sockfd, sendline, sizeof sendline)) > 0) {
+               printf("!recv\n");
+               /*
+               count_recv++;
+               printf("%d\n", count_recv);
+               */
+               fprintf(fwrite, sendline);
                fflush(fwrite);
 
-               memset(buffer_in, 0, sizeof buffer_in); //clear the buffer
+               memset(sendline, 0, sizeof sendline); //clear the buffer
             }
             else {
                if (stdineof == 1) {
                   running = 0;
-                  shutdown(sockfd, SHUT_RD); //close for writing
+                  shutdown(sockfd, SHUT_RD); //close for reading
                   FD_CLR(sockfd, &rset);
                   continue;
                }
@@ -141,7 +144,7 @@ int main(int argc, char **argv) {
       }
    }
 
-   printf("\n#progam ended\n");
+   printf("#progam ended\n");
    exit(0);
 }
 

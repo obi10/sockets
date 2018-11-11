@@ -8,12 +8,9 @@
 #include <strings.h>
 #include <arpa/inet.h>
 
-#include "basic.h"
 #include "socket_helper.h"
 
-//#define LISTENQ 10              
-#define MAXDATASIZE 4096         
-#define EXIT_COMMAND "exit\n"
+//#define LISTENQ 10
 
 void doit(int connfd, struct sockaddr_in clientaddr);
 
@@ -56,7 +53,7 @@ int main (int argc, char **argv) {
       socklen_t clientaddr_len = sizeof(clientaddr);
 
       connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &clientaddr_len);
-      printf("#cliente aceitado\n");
+      printf("#client accepted\n");
 
       if ((pid = fork()) == 0) {
          Close(listenfd);
@@ -64,7 +61,7 @@ int main (int argc, char **argv) {
          doit(connfd, clientaddr);
 
          Close(connfd);
-         printf("%s\n", "\n#task finished");
+         printf("%s\n", "#task finished");
 
          exit(0);
       }
@@ -80,14 +77,17 @@ void doit(int connfd, struct sockaddr_in clientaddr) {
    memset(recvline, 0, sizeof recvline);
 
    ssize_t bytes_read;
-   while((bytes_read = read(connfd, recvline, MAXDATASIZE)) > 0) {
-      printf("%zu\n", bytes_read);
-      if (send(connfd, recvline, strlen(recvline), 0) == -1) {
-         perror("send");
+   //the buffer could almacenate more than one line before enter to the next line of the code
+   //but the server will perform the echo task line by line (using Readline)
+   printf("%s\n", "#echo task executing");
+   while((bytes_read = Readline(connfd, recvline, MAXDATASIZE)) > 0) {
+      //printf("%zu\n", bytes_read);
+      if (writen(connfd, recvline, strlen(recvline)) != strlen(recvline)) {
+         perror("write");
          exit(1);
       } 
-      printf("%sok", recvline);
-      memset(recvline, 0, sizeof recvline);
+      //printf("%sok", recvline);
+      memset(recvline, 0, sizeof recvline); //important
    }
 
 }
