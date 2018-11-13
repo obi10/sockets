@@ -1,6 +1,0 @@
-linux mint1 linux mint1 linux mint1 linux mint1 linux mint1 linux mint1 linux mint1 linux mint1 linux mint1.
-linux fedora2 linux fedora2 linux fedora2 linux fedora2 linux fedora2 linux fedora2 linux fedora2 linux fedora2.
-linux ubuntu3 linux ubuntu3 linux ubuntu3 linux ubuntu3 linux ubuntu3 linux ubuntu3 linux ubuntu3 linux ubuntu3.
-linux redhat4 linux redhat4 linux redhat4 linux redhat4 linux redhat4.
-linux centos5 linux centos5 linux centos5 linux centos5 linux centos5 linux centos5 linux centos5.
-linux kali6 linux kali6 linux kali6 linux kali6 linux kali6.
