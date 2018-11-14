@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
    int sockfd; //socket descriptor for client
    int port;                  
    char * ip;             
-   char error[MAXLINE + 1];     
+   char error[MAXDATASIZE + 1];     
    struct sockaddr_in servaddr;  
 
    int running = 1, stdineof = 0;
@@ -30,15 +30,18 @@ int main(int argc, char **argv) {
    long timeout;
    struct timeval selTimeout;
 
-   //buffers de recepcao e envio
-   char recvline[MAXLINE]; memset(recvline, 0, sizeof recvline);
-   //char *buffer_out = NULL; size_t buffer_out_size = MAXLINE;
-   char sendline[MAXLINE]; memset(sendline, 0, sizeof sendline);
+   //reception and sending buffers (dynamic allocation)
+   char *recvdata = malloc((MAXDATASIZE + 1)*sizeof(char));
+   char *senddata = malloc((MAXDATASIZE + 1)*sizeof(char));
+   if ((recvdata == NULL) || (senddata == NULL)) {
+      printf("The allocation has failed\n");
+      exit(1);
+   }
 
    if (argc != 4) {
-      strcpy(error,"uso: ");
+      strcpy(error,"usage: ");
       strcat(error,argv[0]);
-      strcat(error," <IPaddress, Port>");
+      strcat(error," <timeout, ip_address_server, port_server>");
       perror(error);
       exit(1);
    }
@@ -48,7 +51,6 @@ int main(int argc, char **argv) {
    maxDescriptor = -1;
 
    sockfd = Socket(AF_INET, SOCK_STREAM, 0);
-   if (sockfd > maxDescriptor) maxDescriptor = sockfd;
 
    ip = argv[2];
    port = atoi(argv[3]);
@@ -56,28 +58,9 @@ int main(int argc, char **argv) {
    servaddr = ClientSockaddrIn(AF_INET, ip, port);
 
    Connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-   //printf("#connected to the server\n");
-
-   /*
-   char const* const readFile = argv[4];
-   FILE* fread = fopen(readFile, "r");
-   if (fread == NULL){
-      perror("file-read open");
-      exit(1);
-   }
-   char const* const writeFile = argv[5];
-   FILE* fwrite = fopen(writeFile, "a+");
-   if (fwrite == NULL){
-      perror("file-write open");
-      exit(1);
-   }
-   */
-
-   //int count_send = 0, count_recv = 0;
 
    while (running) {
       FD_ZERO(&rset);
-      FD_SET(STDIN_FILENO, &rset);
       if (stdineof == 0) {
          FD_SET(fileno(stdin), &rset);
          if (fileno(stdin) > maxDescriptor) maxDescriptor = fileno(stdin);
@@ -92,46 +75,28 @@ int main(int argc, char **argv) {
       if (select(maxDescriptor + 1, &rset, NULL, NULL, &selTimeout) == 0)
          printf("No echo requests for %ld secs...Server still alive\n", timeout);
       else {
-         if (FD_ISSET(0, &rset)) { /* Check keyboard */
-            //printf("#Shutting down client\n");
-            getchar();
-            running = 0;
-         }
-
          if (FD_ISSET(fileno(stdin), &rset)) { /* input is readable */
-            if (Readline(fileno(stdin), recvline, sizeof recvline) == 0) {
+            if (read(fileno(stdin), recvdata, MAXDATASIZE) == 0) {
                fclose(stdin);
                stdineof = 1;
                shutdown(sockfd, SHUT_WR); //close for writing
                FD_CLR(fileno(stdin), &rset);
                continue;               
             }
-
-            if (writen(sockfd, recvline, strlen(recvline)) != strlen(recvline)) {
+            if (writen(sockfd, recvdata, strlen(recvdata)) != strlen(recvdata)) {
                perror("write");
                exit(1);
-            } 
-            //printf("!send\n");
-            /*
-            count_send++;
-            printf("%d\n", count_send);
-            */
+            }
 
-            //memset(recvline, 0, sizeof recvline); //is not necessary because the null pointer
-                                                    //inside Readline function
+            memset(recvdata, 0, MAXDATASIZE); //clear the buffer
          }
 
          if (FD_ISSET(sockfd, &rset)) {
-            if ((read(sockfd, sendline, sizeof sendline)) > 0) {
-               //printf("!recv\n");
-               /*
-               count_recv++;
-               printf("%d\n", count_recv);
-               */
-               printf(sendline);
+            if ((read(sockfd, senddata, MAXDATASIZE)) > 0) {
+               printf(senddata);
                fflush(stdout);
 
-               memset(sendline, 0, sizeof sendline); //clear the buffer
+               memset(senddata, 0, MAXDATASIZE);
             }
             else {
                if (stdineof == 1) {
@@ -145,7 +110,8 @@ int main(int argc, char **argv) {
       }
    }
 
-   //printf("#progam ended\n");
+   free(recvdata);
+   free(senddata);
    exit(0);
 }
 

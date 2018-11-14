@@ -10,7 +10,6 @@
 
 #include "socket_helper.h"
 
-//#define LISTENQ 10
 
 void doit(int connfd, struct sockaddr_in clientaddr);
 
@@ -24,9 +23,9 @@ int main (int argc, char **argv) {
    char   error[MAXDATASIZE + 1];     
 
    if (argc != 4) {
-      strcpy(error,"uso: ");
+      strcpy(error,"usage: ");
       strcat(error,argv[0]);
-      strcat(error," <Port>");
+      strcat(error," <ip_address, port, backlog>");
       perror(error);
       exit(1);
    }
@@ -53,7 +52,6 @@ int main (int argc, char **argv) {
       socklen_t clientaddr_len = sizeof(clientaddr);
 
       connfd = Accept(listenfd, (struct sockaddr *) &clientaddr, &clientaddr_len);
-      printf("#client accepted\n");
 
       if ((pid = fork()) == 0) {
          Close(listenfd);
@@ -61,7 +59,6 @@ int main (int argc, char **argv) {
          doit(connfd, clientaddr);
 
          Close(connfd);
-         printf("%s\n", "#task finished");
 
          exit(0);
       }
@@ -73,21 +70,15 @@ int main (int argc, char **argv) {
 }
 
 void doit(int connfd, struct sockaddr_in clientaddr) {
-   char recvline[MAXDATASIZE];
-   memset(recvline, 0, sizeof recvline);
+   char *recvline = malloc((MAXDATASIZE + 1)*sizeof(char));
 
-   ssize_t bytes_read;
-   //the buffer could almacenate more than one line before enter to the next line of the code
-   //but the server will perform the echo task line by line (using Readline)
-   printf("%s\n", "#echo task executing");
-   while((bytes_read = Readline(connfd, recvline, MAXDATASIZE)) > 0) {
-      //printf("%zu\n", bytes_read);
+   //using Readline: the buffer could almacenate more than one line before enter
+   //to the next line of the code, but the server will perform the echo task line by line
+   while(read(connfd, recvline, MAXDATASIZE) > 0) {
       if (writen(connfd, recvline, strlen(recvline)) != strlen(recvline)) {
          perror("write");
          exit(1);
-      } 
-      //printf("%sok", recvline);
-      memset(recvline, 0, sizeof recvline); //important
+      }
+      memset(recvline, 0, MAXDATASIZE); //important
    }
-
 }

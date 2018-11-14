@@ -12,7 +12,6 @@
 
 #include "basic.h"
 
-#define MAXLINE 4096
 #define MAXDATASIZE 4096
 
 #define EXIT_COMMAND "exit\n"

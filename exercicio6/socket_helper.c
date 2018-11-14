@@ -135,7 +135,6 @@ void sig_chld(int signo) {
 }
 
 
-//reads up to MAXLINE characters at a time and then returns them, one at a time
 ssize_t
 my_read(int fd, char *ptr, char *read_buf)
 {
@@ -185,12 +184,13 @@ ssize_t
 Readline(int fd, void *ptr, size_t maxlen)
 {
    ssize_t n;
-   static char read_buf[MAXLINE];
+   static char read_buf[MAXDATASIZE];
 
    if ( (n = readline(fd, ptr, maxlen, read_buf)) < 0)
       perror("readline error");
    return(n);
 }
+
 
 
 ssize_t                 /* Write "n" bytes to a descriptor. */
