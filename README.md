@@ -1,6 +1,6 @@
 # Exercícios - MC833 2S2018
 
-Repositório que contém os exercícios 4 e 5 do curso MC833
+Repositório que contém os exercícios 4,5,6 e o projeto final do curso MC833
 IC-UNICAMP
 
 ## Estrutura de diretórios
@@ -14,3 +14,6 @@ IC-UNICAMP
 * `exercicio6`
     * Aqui estão os arquivos: ... do exercício __Multiplexação de Entrada/Saída__
     * URL do exercicio (<http://www.lrc.ic.unicamp.br/mc833/exercicios/multiplexacao_es_2018/index.html>)
+* `hangman game`
+    * Aqui estão os arquivos: ... do __projeto final__
+    * URL do exercicio (<http://www.lrc.ic.unicamp.br/mc833/exercicios/jogo_da_forca/index.html>)
