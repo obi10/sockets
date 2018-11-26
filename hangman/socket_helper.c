@@ -167,7 +167,7 @@ readline(int fd, void *vptr, size_t maxlen, char *read_buf)
    int new_line = 0;
 
    ptr = vptr;
-   for (n = 1; n < maxlen + 1; n++) {
+   for (n = 0; n < maxlen + 1; n++) {
       if ( (rc = my_read(fd, &c, read_buf)) == 1) {
          if (c == '\n') {
             new_line = 1;
@@ -176,7 +176,7 @@ readline(int fd, void *vptr, size_t maxlen, char *read_buf)
          *ptr++ = c;
       } else if (rc == 0) {
          *ptr = 0;
-         return(n - 1); /* EOF, n - 1 bytes were read */
+         return(n); /* EOF, n - 1 bytes were read */
       } else
          return(-1); /* error, errno set by read() */
       //printf("%zu", n);
@@ -221,8 +221,11 @@ writen(int fd, const void *vptr, size_t n)
       if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
          if (nwritten < 0 && errno == EINTR)
             nwritten = 0;     /* and call write() again */
-         else
-            return(-1);       /* error */
+         else {
+            perror("write");
+            exit(1);
+            //return(-1);       /* error */
+         }
       }
 
       nleft -= nwritten;
@@ -243,9 +246,7 @@ again:
       if ( (read_cnt = read(fd, buf, nbyte)) < 0) {
          if (errno == EINTR)
             goto again;
-         //return(-1);
-         perror("read error");
-         exit(1);
+         return(-1);
       } else if (read_cnt == 0)
          return(0);
    }
@@ -253,15 +254,15 @@ again:
 }
 
 ssize_t
-chargeFileMatrix(FILE *file, const char matrix[MAXNUMWORDS][MAXWORDSIZE + 1])
-{ //get a random word of a read file
-
-   char buf  = [MAXWORDSIZE + 1]; memset(buf, '\0', sizeof buf);
-   int n = 0;
+chargeFileMatrix(FILE *file, char matrix[MAXNUMWORDS][MAXWORDSIZE + 1])
+{ //charge the words in the file to the matrix
+   char buf[MAXWORDSIZE + 1]; memset(buf, '\0', sizeof buf);
+   ssize_t n = 0;
 
    while(Readline(fileno(file), buf, MAXWORDSIZE) > 0) {
       strcpy(matrix[n], buf);
       n++;
       if (n == MAXNUMWORDS) break;
    }
+   return(n); 
 }

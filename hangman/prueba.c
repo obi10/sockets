@@ -46,7 +46,7 @@ readline(int fd, void *vptr, size_t maxlen, char *read_buf)
    int new_line = 0;
 
    ptr = vptr;
-   for (n = 1; n < maxlen + 1; n++) {
+   for (n = 0; n < maxlen + 1; n++) {
       if ( (rc = my_read(fd, &c, read_buf)) == 1) {
          if (c == '\n') {
             new_line = 1;
@@ -55,7 +55,7 @@ readline(int fd, void *vptr, size_t maxlen, char *read_buf)
          *ptr++ = c;
       } else if (rc == 0) {
          *ptr = 0;
-         return(n - 1); /* EOF, n - 1 bytes were read */
+         return(n); /* EOF, n - 1 bytes were read */
       } else
          return(-1); /* error, errno set by read() */
       //printf("%zu", n);
@@ -120,11 +120,11 @@ int main (int argc, char **argv) {
 
 	char buf[MAXWORDSIZE + 1]; memset(buf, '\0', sizeof buf);
 
-	char words[MAXWORDSIZE][MAXWORDSIZE + 1];
+	char words[MAXNUMWORDS][MAXWORDSIZE + 1];
 	int n = 0;
 
 	while (Readline(fileno(file), buf, MAXWORDSIZE) > 0) {
-		strcpy(words[n], buf);
+		strcpy(words[n], "jo");
 		printf("%s%zu%zu\n", buf, strlen(buf), sizeof buf);
 		printf("%s%zu%zu\n", words[n], strlen(words[n]), sizeof words[n]);
 		n++;

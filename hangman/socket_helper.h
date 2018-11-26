@@ -9,12 +9,14 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <string.h> //declaration of memset
 
 #include "basic.h"
 
 #define MAXDATASIZE 4096
 #define MAXWORDSIZE 10 //tamanho maximo da palavra
 #define MAXNUMWORDS 3
+#define SIZE 5
 
 #define EXIT_COMMAND "exit\n"
 
@@ -55,6 +57,6 @@ ssize_t
 Read(int fd, void *buf, size_t nbyte);
 
 ssize_t
-chargeFileMatrix(FILE *file, const char matrix[MAXNUMWORDS][MAXWORDSIZE + 1]);
+chargeFileMatrix(FILE *file, char matrix[MAXNUMWORDS][MAXWORDSIZE + 1]);
 
 #endif

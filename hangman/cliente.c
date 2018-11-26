@@ -30,13 +30,10 @@ int main(int argc, char **argv) {
    long timeout;
    struct timeval selTimeout;
 
-   //reception and sending buffers (dynamic allocation)
-   char *recvdata = malloc((MAXDATASIZE + 1)*sizeof(char));
-   char *senddata = malloc((MAXDATASIZE + 1)*sizeof(char));
-   if ((recvdata == NULL) || (senddata == NULL)) {
-      printf("The allocation has failed\n");
-      exit(1);
-   }
+   int initGame = 1;
+
+   char arrivedData[MAXDATASIZE + 1]; memset(arrivedData, '\0', sizeof arrivedData);
+   char willSendData[SIZE + 1]; memset(willSendData, '\0', sizeof willSendData);
 
    if (argc != 4) {
       strcpy(error,"usage: ");
@@ -59,23 +56,53 @@ int main(int argc, char **argv) {
 
    Connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
 
+   
    while (running) {
+
       FD_ZERO(&rset);
+      FD_SET(STDIN_FILENO, &rset); //add keyboard to descriptor vector
+      /*
       if (stdineof == 0) {
          FD_SET(fileno(stdin), &rset);
          if (fileno(stdin) > maxDescriptor) maxDescriptor = fileno(stdin);
       }
+      */
       FD_SET(sockfd, &rset);
       if (sockfd > maxDescriptor) maxDescriptor = sockfd;
 
       selTimeout.tv_sec = timeout;
       selTimeout.tv_usec = 0;
       
-      /* Suspend program until descriptor is ready or timeout */
+      // Suspend program until descriptor is ready or timeout
       if (select(maxDescriptor + 1, &rset, NULL, NULL, &selTimeout) == 0)
          printf("No echo requests for %ld secs...Server still alive\n", timeout);
       else {
-         if (FD_ISSET(fileno(stdin), &rset)) { /* input is readable */
+         
+         if (FD_ISSET(0, &rset)) { //check keyboard
+
+            if (initGame) {
+               switch (fgetc(stdin)) {
+                  case '1':
+                     strcpy(willSendData, "#ini");
+                     writen(sockfd, willSendData, strlen(willSendData));
+                     memset(willSendData, 0, sizeof willSendData);
+                     initGame = 0;
+                     break;
+                  case '2':
+                     printf("selection: 2");
+                     break;
+                  case '3':
+                     printf("selection: 3");
+                     break;
+                  default:
+                     continue; //skip the next code
+               }
+            }
+            
+            if (!initGame) {
+
+            }
+            /*
             if (read(fileno(stdin), recvdata, MAXDATASIZE) == 0) {
                fclose(stdin);
                stdineof = 1;
@@ -83,25 +110,53 @@ int main(int argc, char **argv) {
                FD_CLR(fileno(stdin), &rset);
                continue;               
             }
-            if (writen(sockfd, recvdata, strlen(recvdata)) != strlen(recvdata)) {
+            if (writen(sockfd, recvdata, strlen(recvdata)) != strlen(recvdata)) { //is not sending the null termination
                perror("write");
                exit(1);
             }
 
             memset(recvdata, 0, MAXDATASIZE); //clear the buffer
+            */
          }
 
          if (FD_ISSET(sockfd, &rset)) {
-            if ((read(sockfd, senddata, MAXDATASIZE)) > 0) {
-               printf(senddata);
-               fflush(stdout);
+            if ((Read(sockfd, arrivedData, SIZE)) > 0) {
 
-               memset(senddata, 0, MAXDATASIZE);
+               switch (arrivedData[0]) {
+                  case '#':
+                     printf("Bem vindo no jogo da forca!\n-----\n");
+                     printf("1)Iniciar partidas simples\n");
+                     printf("2)Ser carrasco ao iniciar partida\n");
+                     printf("3)Jogar no modo multiplayer\n");
+                     memset(arrivedData, 0, sizeof arrivedData);
+                     
+                     break;
+                  case '%':
+                     printf("\nA partida de jogo da forca comecou!\n");
+                     printf("-----\n\n");
+                     printf("Voce possui %d vidas\n", arrivedData[1]);
+                     printf("A palavra possui %d caracteres\n", arrivedData[2]);
+                     break;
+                  case '!':
+                     printf("selection: 2");
+                     break;
+                  case '3':
+                     printf("selection: 3");
+                     break;
+                  default:
+                     break;
+               }
+
+               //printf(senddata);
+               //fflush(stdout);
+
+               //memset(senddata, 0, MAXDATASIZE);
             }
             else {
                if (stdineof == 1) {
                   running = 0;
-                  shutdown(sockfd, SHUT_RD); //close for reading
+                  close(sockfd);
+                  //shutdown(sockfd, SHUT_RD); //close for reading
                   FD_CLR(sockfd, &rset);
                   continue;
                }
@@ -109,9 +164,9 @@ int main(int argc, char **argv) {
          }
       }
    }
+   
 
-   free(recvdata);
-   free(senddata);
+
    exit(0);
 }
 
