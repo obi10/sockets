@@ -24,7 +24,8 @@ int main(int argc, char **argv) {
    char error[MAXDATASIZE + 1];     
    struct sockaddr_in servaddr;  
 
-   int running = 1, stdineof = 0;
+   int running = 1;
+   //int stdineof = 0;
    int maxDescriptor;
    fd_set rset; //read set of descriptors
    long timeout;
@@ -32,8 +33,6 @@ int main(int argc, char **argv) {
 
    int initGame = 1;
 
-   char arrivedData[SIZE + 1]; memset(arrivedData, '\0', sizeof arrivedData);
-   char willSendData[SIZE + 1]; memset(willSendData, '\0', sizeof willSendData);
 
    if (argc != 4) {
       strcpy(error,"usage: ");
@@ -59,6 +58,9 @@ int main(int argc, char **argv) {
    
    while (running) {
 
+      char arrivedData[SIZE + 1]; memset(arrivedData, '\0', sizeof arrivedData);
+      char willSendData[SIZE + 1]; memset(willSendData, '\0', sizeof willSendData);
+
       FD_ZERO(&rset);
       FD_SET(STDIN_FILENO, &rset); //add keyboard to descriptor vector
       /*
@@ -80,14 +82,15 @@ int main(int argc, char **argv) {
          
          if (FD_ISSET(0, &rset)) { //check keyboard
 
+            char c = getchar();
+
             if (initGame) {
-               switch (fgetc(stdin)) {
+               switch (c) {
                   case '1':
                      strcpy(willSendData, "#ini");
                      writen(sockfd, willSendData, strlen(willSendData));
-                     memset(willSendData, 0, sizeof willSendData);
-                     initGame = 0;
-                     goto sockfdBegin;
+                     //memset(willSendData, 0, sizeof willSendData);
+                     break;
                   case '2':
                      printf("selection: 2");
                      break;
@@ -97,11 +100,15 @@ int main(int argc, char **argv) {
                   default:
                      continue; //skip the next code
                }
+               initGame = 0;
+               while ((c = getchar()) != '\n' && c != EOF) c = '\0'; //clear stdin buffer
+               goto sockfdBegin;
             }
             
             
             if (!initGame) {
-               willSendData[0] = fgetc(stdin); //get the character chosen by the user
+               //willSendData[0] = fgetc(stdin); //get the character chosen by the user
+               willSendData[0] = c;
                printf("%d\n", willSendData[0]);
                writen(sockfd, willSendData, strlen(willSendData));
                willSendData[0] = '\0';
@@ -137,7 +144,7 @@ sockfdBegin:
                      printf("1)Iniciar partidas simples\n");
                      printf("2)Ser carrasco ao iniciar partida\n");
                      printf("3)Jogar no modo multiplayer\n");
-                     memset(arrivedData, 0, sizeof arrivedData);
+                     //memset(arrivedData, 0, sizeof arrivedData);
                      
                      break;
                   case '%':

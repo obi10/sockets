@@ -84,17 +84,18 @@ int main (int argc, char **argv) {
 
 void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAXWORDSIZE + 1]) {
    int numVidas = 6;
-   int numVitorias = 0;
+   //int numVitorias = 0;
    //int game_running = 1;
 
    int random_number = 1; //just for testing the word is "linux mint"
 
    char word[MAXWORDSIZE + 1]; memset(word, '\0', sizeof word);
 
-   char recvline[SIZE + 1]; memset(recvline, '\0', sizeof recvline);
-   char sendline[SIZE + 1]; memset(sendline, '\0', sizeof sendline);
-
    while (true) {
+
+      char recvline[SIZE + 1]; memset(recvline, '\0', sizeof recvline);
+      char sendline[SIZE + 1]; memset(sendline, '\0', sizeof sendline);
+
 
       //inform the beginning of the game
       sendline[0] = '#'; //inicio do jogo
@@ -115,11 +116,16 @@ void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAX
       memset(word, '\0', sizeof word);
       memset(sendline, '\0', sizeof sendline);
 
-      //the character inserted by the user is read
+      //the character inserted by the user is 
+
+      //debe seguir un while que abarque el for
       Read(connfd, recvline, SIZE);
       printf("%s\n", recvline);
-      if (recvline[0] == 'A') printf("%s\n", "OK");
-      recvline[0] = '\0';
+      for (int i = 0; i < strlen(word); ++i)
+      {
+         if (recvline[0] == word[i]) printf("%s\n", "OK"); //nao funcionas, revisar ...
+         recvline[0] = '\0';
+      }
 
 
 
