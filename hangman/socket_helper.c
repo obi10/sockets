@@ -246,7 +246,8 @@ again:
       if ( (read_cnt = read(fd, buf, nbyte)) < 0) {
          if (errno == EINTR)
             goto again;
-         return(-1);
+         //return(-1);
+         exit(1);
       } else if (read_cnt == 0)
          return(0);
    }

@@ -44,8 +44,6 @@ int main (int argc, char **argv) {
       exit(1);
    }
 
-   time_t t;
-   srand((unsigned) time(&t));
 
    ip = argv[1];
    port = atoi(argv[2]);
@@ -87,28 +85,46 @@ int main (int argc, char **argv) {
 void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAXWORDSIZE + 1]) {
    int numVidas = 6;
    int numVitorias = 0;
-   int game_running = 1;
-   int random_number = 0;
+   //int game_running = 1;
+
+   int random_number = 1; //just for testing the word is "linux mint"
+
    char word[MAXWORDSIZE + 1]; memset(word, '\0', sizeof word);
 
    char recvline[SIZE + 1]; memset(recvline, '\0', sizeof recvline);
    char sendline[SIZE + 1]; memset(sendline, '\0', sizeof sendline);
 
-   while (game_running) {
+   while (true) {
 
+      //inform the beginning of the game
       sendline[0] = '#'; //inicio do jogo
       writen(connfd, sendline, strlen(sendline));
       sendline[0] = '\0';
 
-      if (Read(connfd, recvline, SIZE) > 0) {
-         strcpy(recvline, "#ini");
+      //wait the confirmation of the user
+      Read(connfd, recvline, SIZE);
+      if (strcmp(recvline, "#ini") != 0) break;
+      memset(recvline, '\0', sizeof recvline);
 
-         random_number = rand() % MAXNUMWORDS;
-         printf("%d\n", random_number);
-         strcpy(word, words[random_number]);
-         printf("%s\n", word);
-         game_running = 0;
-      }
+      //send the number of lifes and the size of the word
+      strcpy(word, words[random_number]);
+      sendline[0] = '%';
+      sendline[1] = numVidas;
+      sendline[2] = strlen(word);
+      writen(connfd, sendline, strlen(sendline));
+      memset(word, '\0', sizeof word);
+      memset(sendline, '\0', sizeof sendline);
+
+      //the character inserted by the user is read
+      Read(connfd, recvline, SIZE);
+      printf("%s\n", recvline);
+      if (recvline[0] == 'A') printf("%s\n", "OK");
+      recvline[0] = '\0';
+
+
+
+
+      break;
       
    }
 

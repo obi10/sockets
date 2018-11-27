@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <stdlib.h>
+#include <time.h> 
+
 #include "basic.h"
 
 #define MAXDATASIZE 4096
@@ -111,6 +114,7 @@ again:
 
 int main (int argc, char **argv) {
 
+   /*
 	FILE *file;
 	file  = fopen("dicionario.txt", "r");
 	if (file == NULL) {
@@ -130,6 +134,29 @@ int main (int argc, char **argv) {
 		n++;
 		if (n == MAXNUMWORDS) break;
 	}
+   */
+
+   /*
+   struct timespec ts;
+   if (timespec_get(&ts, TIME_UTC) == 0) {
+      exit(1);
+   }
+   srandom(ts.tv_nsec ^ ts.tv_sec);
+   */
+
+
+   time_t t;
+
+   int n = 5;
+
+   //initializes random number generator
+   srand((unsigned) time(&t));
+
+   for (int i = 0; i < n; ++i)
+   {
+      printf("%d\n", rand() % 50);
+   }
+
 
 	exit(0);
 }

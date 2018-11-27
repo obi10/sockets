@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 
    int initGame = 1;
 
-   char arrivedData[MAXDATASIZE + 1]; memset(arrivedData, '\0', sizeof arrivedData);
+   char arrivedData[SIZE + 1]; memset(arrivedData, '\0', sizeof arrivedData);
    char willSendData[SIZE + 1]; memset(willSendData, '\0', sizeof willSendData);
 
    if (argc != 4) {
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
                      writen(sockfd, willSendData, strlen(willSendData));
                      memset(willSendData, 0, sizeof willSendData);
                      initGame = 0;
-                     break;
+                     goto sockfdBegin;
                   case '2':
                      printf("selection: 2");
                      break;
@@ -99,9 +99,16 @@ int main(int argc, char **argv) {
                }
             }
             
+            
             if (!initGame) {
-
+               willSendData[0] = fgetc(stdin); //get the character chosen by the user
+               printf("%d\n", willSendData[0]);
+               writen(sockfd, willSendData, strlen(willSendData));
+               willSendData[0] = '\0';
             }
+            
+
+
             /*
             if (read(fileno(stdin), recvdata, MAXDATASIZE) == 0) {
                fclose(stdin);
@@ -119,6 +126,8 @@ int main(int argc, char **argv) {
             */
          }
 
+
+sockfdBegin:
          if (FD_ISSET(sockfd, &rset)) {
             if ((Read(sockfd, arrivedData, SIZE)) > 0) {
 
@@ -152,14 +161,13 @@ int main(int argc, char **argv) {
 
                //memset(senddata, 0, MAXDATASIZE);
             }
-            else {
-               if (stdineof == 1) {
-                  running = 0;
-                  close(sockfd);
-                  //shutdown(sockfd, SHUT_RD); //close for reading
-                  FD_CLR(sockfd, &rset);
-                  continue;
-               }
+            else { //if the server close the connection
+               //not sure if it necessary close the stdin (FD_CLR(STDIN_FILENO, &rset))
+               running = 0;
+               close(sockfd);
+               //shutdown(sockfd, SHUT_RD); //close for reading
+               FD_CLR(sockfd, &rset);
+               continue;
             }
          }
       }
