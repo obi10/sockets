@@ -89,12 +89,15 @@ void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAX
 
    int random_number = 1; //just for testing the word is "linux mint"
 
+   char recvline[SIZE + 1];
+   char sendline[MAXWORDSIZE + 1];
+
    char word[MAXWORDSIZE + 1]; memset(word, '\0', sizeof word);
 
    while (true) {
 
-      char recvline[SIZE + 1]; memset(recvline, '\0', sizeof recvline);
-      char sendline[SIZE + 1]; memset(sendline, '\0', sizeof sendline);
+      memset(recvline, '\0', sizeof recvline);
+      memset(sendline, '\0', sizeof sendline);
 
 
       //inform the beginning of the game
@@ -112,21 +115,60 @@ void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAX
       sendline[0] = '%';
       sendline[1] = numVidas;
       sendline[2] = strlen(word);
+      for (int i = 0; i < strlen(sendline); ++i) if (word[i] == ' ') sendline[2]--;
+
+      printf("%ld\n", strlen(sendline));
+
       writen(connfd, sendline, strlen(sendline));
-      memset(word, '\0', sizeof word);
       memset(sendline, '\0', sizeof sendline);
 
-      //the character inserted by the user is 
-
-      //debe seguir un while que abarque el for
-      Read(connfd, recvline, SIZE);
-      printf("%s\n", recvline);
-      for (int i = 0; i < strlen(word); ++i)
+      strcpy(sendline, word);
+      printf("%s\n", sendline);
+      for (int i = 0; i < strlen(sendline); ++i)
       {
-         if (recvline[0] == word[i]) printf("%s\n", "OK"); //nao funcionas, revisar ...
+         if (sendline[i] != ' ' && sendline != '\0') sendline[i] = '_';
+      }
+      printf("%s\n", sendline);
+      printf("%ld\n", strlen(sendline));
+      sleep(1); //deve ser eleminado
+      writen(connfd, sendline, strlen(sendline)); //the representation of the word is send
+
+
+      while (numVidas > 0) {
+
+         Read(connfd, recvline, SIZE);
+         int count = 0;
+         for (int i = 0; i < strlen(word); ++i)
+         {
+            if (recvline[0] == word[i]) {
+               sendline[i] = word[i];
+               word[i] = '+';
+               count ++;
+            }
+         }
+
+         if (count == 0) {
+            char newBuffer[SIZE + 1];
+            memset(newBuffer, '\0', sizeof newBuffer);
+            newBuffer[0] = '!';
+            numVidas--;
+            newBuffer[1] = recvline[0];
+            newBuffer[2] = numVidas;
+            writen(connfd, newBuffer, strlen(newBuffer));
+         }
+         else {
+            writen(connfd, sendline, strlen(sendline));
+         }
          recvline[0] = '\0';
+
+         for (int i = 0; i < strlen(sendline); ++i)
+         {
+            //if (word[i] != ' ' && word[i] != '_') cmp = 0; 
+         }
+
       }
 
+      //enviar fim da partida e perguntar se deseja jogar outra vez
 
 
 

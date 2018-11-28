@@ -33,6 +33,8 @@ int main(int argc, char **argv) {
 
    int initGame = 1;
 
+   char arrivedData[MAXWORDSIZE + 1];
+   char willSendData[SIZE + 1];
 
    if (argc != 4) {
       strcpy(error,"usage: ");
@@ -58,8 +60,8 @@ int main(int argc, char **argv) {
    
    while (running) {
 
-      char arrivedData[SIZE + 1]; memset(arrivedData, '\0', sizeof arrivedData);
-      char willSendData[SIZE + 1]; memset(willSendData, '\0', sizeof willSendData);
+      memset(arrivedData, '\0', sizeof arrivedData);
+      memset(willSendData, '\0', sizeof willSendData);
 
       FD_ZERO(&rset);
       FD_SET(STDIN_FILENO, &rset); //add keyboard to descriptor vector
@@ -91,8 +93,8 @@ int main(int argc, char **argv) {
                      writen(sockfd, willSendData, strlen(willSendData));
                      //memset(willSendData, 0, sizeof willSendData);
                      break;
-                  case '2':
-                     printf("selection: 2");
+                  case '@':
+                     //se enviara data pelo protocolo UDP
                      break;
                   case '3':
                      printf("selection: 3");
@@ -101,19 +103,22 @@ int main(int argc, char **argv) {
                      continue; //skip the next code
                }
                initGame = 0;
-               while ((c = getchar()) != '\n' && c != EOF) c = '\0'; //clear stdin buffer
-               goto sockfdBegin;
+               goto clearBuffer;
             }
             
             
             if (!initGame) {
                //willSendData[0] = fgetc(stdin); //get the character chosen by the user
                willSendData[0] = c;
-               printf("%d\n", willSendData[0]);
+               //printf("%d\n", willSendData[0]);
                writen(sockfd, willSendData, strlen(willSendData));
-               willSendData[0] = '\0';
+               //willSendData[0] = '\0';
+               //goto clearBuffer;
             }
             
+clearBuffer:
+
+            while ((c = getchar()) != '\n' && c != EOF) c = '\0'; //clear stdin buffer
 
 
             /*
@@ -134,9 +139,9 @@ int main(int argc, char **argv) {
          }
 
 
-sockfdBegin:
+
          if (FD_ISSET(sockfd, &rset)) {
-            if ((Read(sockfd, arrivedData, SIZE)) > 0) {
+            if ((Read(sockfd, arrivedData, MAXWORDSIZE)) > 0) {
 
                switch (arrivedData[0]) {
                   case '#':
@@ -148,25 +153,23 @@ sockfdBegin:
                      
                      break;
                   case '%':
+                     printf("%ld\n", strlen(arrivedData));
+                     printf("%s\n", arrivedData);
                      printf("\nA partida de jogo da forca comecou!\n");
                      printf("-----\n\n");
                      printf("Voce possui %d vidas\n", arrivedData[1]);
                      printf("A palavra possui %d caracteres\n", arrivedData[2]);
                      break;
-                  case '!':
-                     printf("selection: 2");
-                     break;
-                  case '3':
-                     printf("selection: 3");
+                  case '!': //o jogador erro
+                     printf("\nA palavra nao tem nehuma letra '%c'\n", arrivedData[1]);
+                     printf("Você agora possui %d vidas\n", arrivedData[2]);
                      break;
                   default:
+                     printf("%ld\n", strlen(arrivedData));
+                     printf("%s\n\n", arrivedData);
                      break;
                }
 
-               //printf(senddata);
-               //fflush(stdout);
-
-               //memset(senddata, 0, MAXDATASIZE);
             }
             else { //if the server close the connection
                //not sure if it necessary close the stdin (FD_CLR(STDIN_FILENO, &rset))
