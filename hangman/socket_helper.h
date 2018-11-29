@@ -10,13 +10,17 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <string.h> //declaration of memset
+#include <sys/mman.h>
 
 #include "basic.h"
 
 #define MAXDATASIZE 4096
+#define SIZE 30
 #define MAXWORDSIZE 10 //tamanho maximo da palavra
 #define MAXNUMWORDS 3
-#define SIZE 5
+
+#define MAXNUMMP 10
+#define MAXNUMHM 4
 
 #define EXIT_COMMAND "exit\n"
 

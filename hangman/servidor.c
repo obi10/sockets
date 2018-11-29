@@ -11,7 +11,7 @@
 #include "socket_helper.h"
 
 
-void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAXWORDSIZE + 1]);
+void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAXWORDSIZE + 1], int *clientsMP, int *clientsHM);
 
 int main (int argc, char **argv) {
    int    listenfd,              
@@ -23,6 +23,12 @@ int main (int argc, char **argv) {
    char   error[MAXDATASIZE + 1];     
    char words[MAXNUMWORDS][MAXWORDSIZE + 1];
    FILE *f;
+
+   //arrays of sockets (childs processes must share memory)
+   int *clientsMP;
+   clientsMP = mmap(NULL, MAXNUMMP*sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+   int *clientsHM;
+   clientsHM = mmap(NULL, MAXNUMHM*sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
    if (argc != 4) {
       strcpy(error,"usage: ");
@@ -44,6 +50,8 @@ int main (int argc, char **argv) {
       exit(1);
    }
 
+   for (int i = 0; i < MAXNUMMP; ++i) clientsMP[i] = -1; //-1 indicates available entry
+   for (int i = 0; i < MAXNUMHM; ++i) clientsHM[i] = -1;
 
    ip = argv[1];
    port = atoi(argv[2]);
@@ -69,7 +77,7 @@ int main (int argc, char **argv) {
       if ((pid = fork()) == 0) {
          Close(listenfd);
          
-         doit(connfd, clientaddr, words);
+         doit(connfd, clientaddr, words, clientsMP, clientsHM);
 
          Close(connfd);
 
@@ -82,97 +90,152 @@ int main (int argc, char **argv) {
    return(0);
 }
 
-void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAXWORDSIZE + 1]) {
+void doit(int connfd, struct sockaddr_in clientaddr, char words[MAXNUMWORDS][MAXWORDSIZE + 1], int *clientsMP, int *clientsHM) {
    int numVidas = 6;
-   //int numVitorias = 0;
-   //int game_running = 1;
+   int running = 1;
 
    int random_number = 1; //just for testing the word is "linux mint"
 
    char recvline[SIZE + 1];
-   char sendline[MAXWORDSIZE + 1];
+   char sendline[SIZE + 1];
 
    char word[MAXWORDSIZE + 1]; memset(word, '\0', sizeof word);
 
-   while (true) {
+   while (running) {
 
       memset(recvline, '\0', sizeof recvline);
       memset(sendline, '\0', sizeof sendline);
 
 
       //inform the beginning of the game
-      sendline[0] = '#'; //inicio do jogo
+      sendline[0] = 'i';
       writen(connfd, sendline, strlen(sendline));
       sendline[0] = '\0';
 
-      //wait the confirmation of the user
+      //wait the selection of the user
       Read(connfd, recvline, SIZE);
-      if (strcmp(recvline, "#ini") != 0) break;
-      memset(recvline, '\0', sizeof recvline);
 
-      //send the number of lifes and the size of the word
-      strcpy(word, words[random_number]);
-      sendline[0] = '%';
-      sendline[1] = numVidas;
-      sendline[2] = strlen(word);
-      for (int i = 0; i < strlen(sendline); ++i) if (word[i] == ' ') sendline[2]--;
+      if (strcmp(recvline, "#1") == 0) { //individual mode
+         memset(recvline, '\0', sizeof recvline);
 
-      printf("%ld\n", strlen(sendline));
+         //send the number of lifes and the size of the word
+         strcpy(word, words[random_number]);
+         sendline[0] = '!';
+         sendline[1] = numVidas;
+         sendline[2] = strlen(word);
+         for (int i = 0; i < strlen(word); ++i) if (word[i] == ' ') sendline[2]--;
+         writen(connfd, sendline, strlen(sendline));
+         memset(sendline, '\0', sizeof sendline);
 
-      writen(connfd, sendline, strlen(sendline));
-      memset(sendline, '\0', sizeof sendline);
-
-      strcpy(sendline, word);
-      printf("%s\n", sendline);
-      for (int i = 0; i < strlen(sendline); ++i)
-      {
-         if (sendline[i] != ' ' && sendline != '\0') sendline[i] = '_';
-      }
-      printf("%s\n", sendline);
-      printf("%ld\n", strlen(sendline));
-      sleep(1); //deve ser eleminado
-      writen(connfd, sendline, strlen(sendline)); //the representation of the word is send
-
-
-      while (numVidas > 0) {
-
+         //wait until the confirmation of the client
          Read(connfd, recvline, SIZE);
-         int count = 0;
+         if (strcmp(recvline, "1ini") != 0) break; //go out of the while(true)
+         memset(recvline, '\0', sizeof recvline);
+
+         //send the model of the word
          for (int i = 0; i < strlen(word); ++i)
          {
-            if (recvline[0] == word[i]) {
-               sendline[i] = word[i];
-               word[i] = '+';
-               count ++;
-            }
+            sendline[2*i] = word[i];
+            sendline[2*i+1] = ' ';
          }
-
-         if (count == 0) {
-            char newBuffer[SIZE + 1];
-            memset(newBuffer, '\0', sizeof newBuffer);
-            newBuffer[0] = '!';
-            numVidas--;
-            newBuffer[1] = recvline[0];
-            newBuffer[2] = numVidas;
-            writen(connfd, newBuffer, strlen(newBuffer));
-         }
-         else {
-            writen(connfd, sendline, strlen(sendline));
-         }
-         recvline[0] = '\0';
-
          for (int i = 0; i < strlen(sendline); ++i)
          {
-            //if (word[i] != ' ' && word[i] != '_') cmp = 0; 
+            if (sendline[i] != ' ' && sendline != '\0') sendline[i] = '_';
+         }
+         writen(connfd, sendline, strlen(sendline)); //the representation of the word is send
+
+
+         while (numVidas > 0) {
+
+            Read(connfd, recvline, SIZE);
+            int count = 0;
+            for (int i = 0; i < strlen(word); ++i)
+            {
+               if (recvline[0] == word[i]) {
+                  sendline[2*i] = word[i];
+                  word[i] = '+';
+                  count ++;
+               }
+            }
+
+            if (count == 0) {
+               char newBuffer[SIZE + 1];
+               memset(newBuffer, '\0', sizeof newBuffer);
+               newBuffer[0] = '#';
+               numVidas--;
+               newBuffer[1] = recvline[0];
+               newBuffer[2] = numVidas;
+               writen(connfd, newBuffer, strlen(newBuffer));
+            }
+            else {
+               writen(connfd, sendline, strlen(sendline));
+            }
+            recvline[0] = '\0';
+
+            for (int i = 0; i < strlen(sendline); ++i)
+            {
+               //if (word[i] != ' ' && word[i] != '_') cmp = 0; 
+            }
+
          }
 
+         running = 0;
       }
 
-      //enviar fim da partida e perguntar se deseja jogar outra vez
+      if (strcmp(recvline, "#2") == 0) { //client like a hangman
 
+         for (int i = 0; i < MAXNUMHM; ++i)
+            if (clientsHM[i] < 0) {
+               clientsHM[i] = connfd;
+               break;
+            }
 
+         do {
+            memset(recvline, '\0', sizeof recvline);
 
-      break;
+            int num = 0; 
+            for (int i = 0; i < MAXNUMMP; ++i) if (clientsMP[i] > 0) num ++;
+
+            sendline[0] = '!';
+            sendline[1] = num;
+
+            printf("%s\n", sendline); //debug
+            writen(connfd, sendline, strlen(sendline));
+            memset(sendline, '\0', sizeof sendline);
+
+            Read(connfd, recvline, SIZE);
+         } while (strcmp(recvline, "2keep") == 0);
+
+         if (strcmp(recvline, "2reset") == 0) continue;
+
+         if (strcmp(recvline, "2ini") == 0) {
+            //logica
+         }
+
+         running = 0;
+      }
+
+      if (strcmp(recvline, "#3") == 0) { //client like a multiplayer
+         memset(recvline, '\0', sizeof recvline);
+
+         for (int i = 0; i < MAXNUMMP; ++i)
+            if (clientsMP[i] < 0) {
+               clientsMP[i] = connfd;
+               break;
+            }
+
+         int num = 0;
+         for (int i = 0; i < MAXNUMHM; ++i) if (clientsHM[i] == 0) num++;
+
+         if (num > 0) {
+            sendline[0] = '3';
+            sendline[1] = '!';
+            writen(connfd, sendline, strlen(sendline));
+         }
+
+         running = 0;
+      }
+
       
    }
 
